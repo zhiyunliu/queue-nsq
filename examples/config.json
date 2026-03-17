@@ -1,0 +1,33 @@
+{
+    "app": {
+        "mode": "release"
+    },
+    "queues": {
+        "default": {
+            "proto": "nsq",
+            "addr": "nsq://default",
+            "delay_interval": 2,
+            "group_name": "nsq-basic-group",
+            "deadletter_queue": "demo.deadletter"
+        }
+    },
+    "nsq": {
+        "default": {
+            "nsqd_addrs": ["192.168.1.155:4150"],
+            "lookupd_addrs": ["192.168.1.155:4161"]
+        }
+    },
+    "servers": {
+        "mqcserver": {
+            "config": {
+                "addr": "queues://default",
+                "status": "start"
+            },
+            "tasks": [
+                {"queue": "demo.order",  "service": "/demo/order"},
+                {"queue": "demo.delay",  "service": "/demo/delay"},
+                {"queue": "demo.deadletter", "service": "/demo/deadletter"}
+            ]
+        }
+    }
+}
