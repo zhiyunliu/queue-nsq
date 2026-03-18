@@ -7,14 +7,14 @@
             "proto": "nsq",
             "addr": "nsq://default",
             "delay_interval": 2,
-            "group_name": "nsq-basic-group",
-            "deadletter_queue": "demo.deadletter"
+            "group_name": "nsq-basic-group"
         }
     },
     "nsq": {
         "default": {
             "nsqd_addrs": ["192.168.1.155:4150"],
-            "lookupd_addrs": ["192.168.1.155:4161"]
+            "lookupd_addrs": ["192.168.1.155:4161"],
+            "log_level": "none"
         }
     },
     "servers": {
@@ -25,8 +25,7 @@
             },
             "tasks": [
                 {"queue": "demo.order",  "service": "/demo/order"},
-                {"queue": "demo.delay",  "service": "/demo/delay"},
-                {"queue": "demo.deadletter", "service": "/demo/deadletter"}
+                {"queue": "demo.delay",  "service": "/demo/delay"}
             ]
         }
     }

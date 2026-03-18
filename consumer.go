@@ -17,25 +17,26 @@ var _ queue.IMQC = (*Consumer)(nil)
 // QueueItem holds the subscription metadata and callback for a single NSQ topic.
 type QueueItem struct {
 	queue.TaskInfo
-	callback   queue.ConsumeCallback
-	nsqCons    *nsq.Consumer
+	callback queue.ConsumeCallback
+	nsqCons  *nsq.Consumer
 }
 
 // Consumer subscribes to NSQ topics and dispatches messages to registered callbacks.
 type Consumer struct {
-	proto             string
-	configName        string
-	groupName         string
-	deadLetterQueue   string
-	enableDeadLetter  bool
+	proto              string
+	configName         string
+	groupName          string
+	deadLetterQueue    string
+	enableDeadLetter   bool
 	deadLetterProducer *nsq.Producer
-	queues            cmap.ConcurrentMap[string, *QueueItem]
-	closeCh           chan struct{}
-	once              sync.Once
-	wg                sync.WaitGroup
-	config            config.Config
-	lookupdAddrs      []string
-	nsqdAddr          string
+	queues             cmap.ConcurrentMap[string, *QueueItem]
+	closeCh            chan struct{}
+	once               sync.Once
+	wg                 sync.WaitGroup
+	config             config.Config
+	lookupdAddrs       []string
+	nsqdAddr           string
+	logLevel           string
 }
 
 // NewConsumer constructs a Consumer; Connect must be called before Start.
@@ -60,6 +61,7 @@ func (c *Consumer) Connect() (err error) {
 	}
 	c.nsqdAddr = firstNsqdAddr(serverCfg)
 	c.lookupdAddrs = lookupdAddrs(serverCfg)
+	c.logLevel = serverCfg.LogLevel
 	ccfg := &ConsumerConfig{}
 	_ = c.config.ScanTo(ccfg)
 	c.deadLetterQueue = ccfg.DeadLetterQueue
@@ -75,6 +77,9 @@ func (c *Consumer) Connect() (err error) {
 		c.deadLetterProducer, err = nsq.NewProducer(c.nsqdAddr, nsq.NewConfig())
 		if err != nil {
 			return fmt.Errorf("nsq dead letter producer: %w", err)
+		}
+		if shouldDisableNsqLog(c.logLevel) {
+			c.deadLetterProducer.SetLogger(discardNsqLogger(), nsq.LogLevelError+1)
 		}
 	}
 	return nil
@@ -117,6 +122,9 @@ func (c *Consumer) Start() error {
 			return fmt.Errorf("nsq NewConsumer %s: %w", topic, err)
 		}
 		item.nsqCons = cons
+		if shouldDisableNsqLog(c.logLevel) {
+			cons.SetLogger(discardNsqLogger(), nsq.LogLevelError+1)
+		}
 		cons.AddHandler(c.buildHandler(item))
 		if len(c.lookupdAddrs) > 0 {
 			for _, addr := range c.lookupdAddrs {

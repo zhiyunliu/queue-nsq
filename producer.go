@@ -36,6 +36,9 @@ func NewProducer(cfg config.Config, opts ...queue.Option) (p *Producer, err erro
 		opts:    &ProducerOptions{DelayInterval: 2},
 	}
 	_ = cfg.ScanTo(p.opts)
+	if shouldDisableNsqLog(serverCfg.LogLevel) {
+		prod.SetLogger(discardNsqLogger(), nsq.LogLevelError+1)
+	}
 	return p, nil
 }
 

@@ -1,6 +1,8 @@
 package nsq
 
 import (
+	"io"
+	"log"
 	"strings"
 
 	"github.com/zhiyunliu/glue/config"
@@ -13,6 +15,8 @@ type ServerConfig struct {
 	NsqdAddrs []string `json:"nsqd_addrs" yaml:"nsqd_addrs"`
 	// LookupdAddrs is the list of nsqlookupd HTTP addresses (e.g. "127.0.0.1:4161") for consumer discovery.
 	LookupdAddrs []string `json:"lookupd_addrs" yaml:"lookupd_addrs"`
+	// LogLevel 控制 go-nsq 内置日志：设为 "none" / "off" / "disabled" 时禁用 NSQ 日志输出。
+	LogLevel string `json:"log_level" yaml:"log_level"`
 }
 
 // ProducerOptions holds producer-level settings.
@@ -56,3 +60,16 @@ func lookupdAddrs(serverCfg *ServerConfig) []string {
 	}
 	return serverCfg.NsqdAddrs
 }
+
+// shouldDisableNsqLog 判断配置是否要求禁用 NSQ 内置日志。
+func shouldDisableNsqLog(logLevel string) bool {
+	switch strings.ToLower(strings.TrimSpace(logLevel)) {
+	case "none", "off", "disabled":
+		return true
+	default:
+		return false
+	}
+}
+
+// discardNsqLogger 用于禁用 go-nsq 日志时传入 SetLogger。
+func discardNsqLogger() *log.Logger { return log.New(io.Discard, "", 0) }
